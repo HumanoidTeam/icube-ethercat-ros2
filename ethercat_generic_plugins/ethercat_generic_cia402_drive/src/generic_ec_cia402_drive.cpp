@@ -87,6 +87,34 @@ void EcCiA402Drive::processData(size_t index, uint8_t * domain_address)
     status_word_ = pdo_channels_info_[index].last_value;
   }
 
+  // Special case: Error Code (0x603F)
+  if (pdo_channels_info_[index].index == CiA402D_TPDO_ERROR_CODE) {
+    uint16_t new_error_code = pdo_channels_info_[index].last_value;
+    if (new_error_code != error_code_) {
+      error_code_ = new_error_code;
+      std::cout << "Error Code: " << std::hex << error_code_ << std::dec << std::endl;
+      
+      // During startup, clear any stored temperature faults
+      if (counter_ < 100) {  // First 100 cycles = startup phase
+        if (error_code_ == 0x4110) {
+          std::cout << "Startup: Clearing stored temperature fault error code" << std::endl;
+          temperature_fault_detected_ = false;
+        }
+      }
+      // After startup, check for temperature fault using specific error code 0x4110
+      else if (error_code_ == 0x4110) {
+        temperature_fault_detected_ = true;
+        std::cout << "TEMPERATURE FAULT DETECTED (Error Code 0x4110) - Disabling automatic fault reset" << std::endl;
+      }
+      // Reset temperature fault flag when error code returns to 0 (no fault)
+      else if (error_code_ == 0x0) {
+        if (temperature_fault_detected_) {
+          temperature_fault_detected_ = false;
+          std::cout << "Temperature fault cleared - Automatic fault reset re-enabled" << std::endl;
+        }
+      }
+    }
+  }
 
   // CHECK FOR STATE CHANGE
   if (index == all_channels_.size() - 1) {  // if last entry  in domain
@@ -213,7 +241,7 @@ uint16_t EcCiA402Drive::transition(DeviceState state, uint16_t control_word)
     case STATE_FAULT_REACTION_ACTIVE:     // -> STATE_FAULT (automatic)
       return control_word;
     case STATE_FAULT:                     // -> STATE_SWITCH_ON_DISABLED
-      if (auto_fault_reset_ || fault_reset_) {
+      if ((auto_fault_reset_ || fault_reset_) && !temperature_fault_detected_) {
         fault_reset_ = false;
         return (control_word & 0b11111111) | 0b10000000;     // automatic reset
       } else {
