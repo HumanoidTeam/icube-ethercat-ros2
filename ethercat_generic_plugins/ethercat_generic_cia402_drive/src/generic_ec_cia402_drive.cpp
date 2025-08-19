@@ -91,21 +91,11 @@ void EcCiA402Drive::processData(size_t index, uint8_t *domain_address)
     if (pdo_channels_info_[index].index == CiA402D_TPDO_POSITION)
     {
         double current_position = pdo_channels_info_[index].last_value;
-        // Initialize last_position_ if it hasn't been set yet (first time)
-        if (std::isnan(last_position_))
+        // Initialize last_position_ if it hasn't been set yet (first time) and the drive is operational
+        if (std::isnan(last_position_) && is_operational_)
         {
             last_position_ = current_position;
             std::cout << "Position initialized: " << last_position_ << std::endl;
-        }
-        else
-        {
-            // Only update last_position_ if the change is significant (prevents drifting)
-            double position_threshold = 0.0001; // Adjust this threshold as needed
-            double change = std::abs(current_position - last_position_);
-            if (change > position_threshold)
-            {
-                last_position_ = current_position;
-            }
         }
     }
 
