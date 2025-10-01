@@ -56,9 +56,12 @@ void EcCiA402Drive::processData(size_t index, uint8_t *domain_address)
             if (auto_state_transitions_)
             {
                 uint16_t cw = transition(state_, pdo_channels_info_[index].ec_read(domain_address));
-                // If any instance is faulted, force quick-stop controlword
+                // If any instance is faulted, force quick-stop only on non-faulted drives
                 if (num_faulted_.load(std::memory_order_relaxed) > 0) {
-                    cw = (cw & 0b01111110) | 0b00000110; // safe quick-stop path
+                    if (error_code_ == 0) {
+                        cw = (cw & 0b01111110) | 0b00000110; // safe quick-stop path for healthy drives
+                    }
+                    // If this drive is faulted (error_code_ != 0), do not override so reset can proceed
                 }
                 pdo_channels_info_[index].default_value = cw;
             }
