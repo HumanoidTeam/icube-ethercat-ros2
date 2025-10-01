@@ -21,6 +21,8 @@
 namespace ethercat_generic_plugins
 {
 
+std::atomic<int> EcCiA402Drive::num_faulted_{0};
+
 EcCiA402Drive::EcCiA402Drive()
     : GenericEcSlave()
 {
@@ -53,8 +55,12 @@ void EcCiA402Drive::processData(size_t index, uint8_t *domain_address)
 
             if (auto_state_transitions_)
             {
-                pdo_channels_info_[index].default_value =
-                    transition(state_, pdo_channels_info_[index].ec_read(domain_address));
+                uint16_t cw = transition(state_, pdo_channels_info_[index].ec_read(domain_address));
+                // If any instance is faulted, force quick-stop controlword
+                if (num_faulted_.load(std::memory_order_relaxed) > 0) {
+                    cw = (cw & 0b01111110) | 0b00000110; // safe quick-stop path
+                }
+                pdo_channels_info_[index].default_value = cw;
             }
         }
     }
@@ -111,8 +117,18 @@ void EcCiA402Drive::processData(size_t index, uint8_t *domain_address)
         uint16_t new_error_code = pdo_channels_info_[index].last_value;
         if (new_error_code != error_code_)
         {
+            uint16_t prev = error_code_;
             error_code_ = new_error_code;
             std::cout << "Error Code: " << std::hex << error_code_ << std::dec << std::endl;
+
+            // Update registry counters
+            bool was_faulted = (prev != 0);
+            bool now_faulted = (error_code_ != 0);
+            if (!was_faulted && now_faulted) {
+                num_faulted_.fetch_add(1, std::memory_order_relaxed);
+            } else if (was_faulted && !now_faulted) {
+                num_faulted_.fetch_sub(1, std::memory_order_relaxed);
+            }
 
             // During startup, clear any stored temperature faults
             if (counter_ < 100)
