@@ -58,7 +58,7 @@ void EcCiA402Drive::processData(size_t index, uint8_t *domain_address)
                 uint16_t cw = transition(state_, pdo_channels_info_[index].ec_read(domain_address));
                 // If any instance is faulted, force quick-stop only on non-faulted drives
                 if (num_faulted_.load(std::memory_order_relaxed) > 0) {
-                    if ((error_code_ == 0) && ((status_word_ & 0x07) == 0x07)) { // & status 7 = 7 (first 3 bits always 1)
+                    if (error_code_ == 0) { // && ((status_word_ & 0x07) == 0x07)) { // & status 7 = 7 (first 3 bits always 1) this induces weird sound while resetting error!!! 
                         // Clear bit7 and bit0, set bit2 and bit1 (CiA-402 Shutdown)
                         cw = (cw & 0x7E) | 0x06;   // same as (cw & 0b01111110) | 0b00000110
                         // safe quick-stop path for healthy drives, this is writing 6 to the actuators. @babak 
