@@ -339,12 +339,12 @@ CallbackReturn EthercatDriver::on_activate(
     // update EtherCAT bus
 
     master_->update();
-    RCLCPP_INFO(rclcpp::get_logger("EthercatDriver"), "updated!");
+    // RCLCPP_INFO(rclcpp::get_logger("EthercatDriver"), "updated!");
 
     // check if operational
     bool isAllInit = true;
     for (auto & module : ec_modules_) {
-      isAllInit = isAllInit && module->initialized();
+      isAllInit = isAllInit && module->initialized() && module->is_operational();
     }
     if (isAllInit) {
       running = false;
