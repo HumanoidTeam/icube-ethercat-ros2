@@ -20,10 +20,12 @@
 #include <string>
 #include <vector>
 #include <pluginlib/class_loader.hpp>
+#include "ethercat_driver/msg/joint_operational_state_array.hpp"
 #include "hardware_interface/handle.hpp"
 #include "hardware_interface/hardware_info.hpp"
 #include "hardware_interface/system_interface.hpp"
 #include "hardware_interface/types/hardware_interface_return_values.hpp"
+#include "rclcpp/rclcpp.hpp"
 #include "rclcpp/macros.hpp"
 #include "rclcpp_lifecycle/node_interfaces/lifecycle_node_interface.hpp"
 #include "rclcpp_lifecycle/state.hpp"
@@ -86,6 +88,19 @@ private:
   std::unique_ptr<ethercat_interface::EcMaster> master_;
   std::mutex ec_mutex_;
   bool activated_;
+  int master_id_ = 0;
+
+  std::vector<std::string> joint_names_;
+  std::vector<std::vector<size_t>> joint_module_indices_;
+  std::vector<bool> joint_operational_status_;
+
+  rclcpp::Node::SharedPtr status_node_;
+  using OperationalStateMsg = msg::JointOperationalStateArray;
+  rclcpp::Publisher<OperationalStateMsg>::SharedPtr joint_status_pub_;
+  OperationalStateMsg joint_status_msg_;
+  size_t status_publish_counter_ = 0;
+  size_t status_publish_period_ = 50;
+  std::string operational_state_topic_ = "joint_operational_states";
 };
 }  // namespace ethercat_driver
 

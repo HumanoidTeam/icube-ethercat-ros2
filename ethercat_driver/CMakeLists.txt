@@ -12,6 +12,8 @@ find_package(pluginlib REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_lifecycle REQUIRED)
 find_package(ethercat_interface REQUIRED)
+find_package(rosidl_default_generators REQUIRED)
+find_package(std_msgs REQUIRED)
 
 add_library(
   ${PROJECT_NAME}
@@ -31,6 +33,7 @@ ament_target_dependencies(
   rclcpp
   rclcpp_lifecycle
   ethercat_interface
+  std_msgs
 )
 
 # Causes the visibility macros to use dllexport rather than dllimport,
@@ -55,6 +58,18 @@ if(BUILD_TESTING)
 endif()
 
 ## EXPORTS
+set(msg_files
+  "msg/JointOperationalStateArray.msg"
+)
+
+rosidl_generate_interfaces(${PROJECT_NAME}
+  ${msg_files}
+  DEPENDENCIES std_msgs
+)
+
+rosidl_get_typesupport_target(cpp_typesupport_target ${PROJECT_NAME} "rosidl_typesupport_cpp")
+target_link_libraries(${PROJECT_NAME} ${cpp_typesupport_target})
+
 ament_export_include_directories(
   include
 )
@@ -67,5 +82,7 @@ ament_export_dependencies(
   rclcpp
   rclcpp_lifecycle
   ethercat_interface
+  std_msgs
+  rosidl_default_runtime
 )
 ament_package()
