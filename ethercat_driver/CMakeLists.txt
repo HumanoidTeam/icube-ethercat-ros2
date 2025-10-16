@@ -67,11 +67,8 @@ rosidl_generate_interfaces(${PROJECT_NAME}_interfaces
   DEPENDENCIES std_msgs
 )
 
-rosidl_target_interfaces(${PROJECT_NAME}
-  ${PROJECT_NAME}_interfaces
-  "rosidl_typesupport_cpp")
-
-ament_export_targets(${PROJECT_NAME}_interfaces HAS_LIBRARY_TARGET)
+rosidl_get_typesupport_target(cpp_typesupport_target ${PROJECT_NAME}_interfaces "rosidl_typesupport_cpp")
+target_link_libraries(${PROJECT_NAME} ${cpp_typesupport_target})
 
 ament_export_include_directories(
   include
