@@ -62,13 +62,14 @@ set(msg_files
   "msg/JointOperationalStateArray.msg"
 )
 
-rosidl_generate_interfaces(${PROJECT_NAME}
+rosidl_generate_interfaces(${PROJECT_NAME}_interfaces
   ${msg_files}
   DEPENDENCIES std_msgs
 )
 
-rosidl_get_typesupport_target(cpp_typesupport_target ${PROJECT_NAME} "rosidl_typesupport_cpp")
-target_link_libraries(${PROJECT_NAME} ${cpp_typesupport_target})
+rosidl_target_interfaces(${PROJECT_NAME}
+  ${PROJECT_NAME}_interfaces
+  "rosidl_typesupport_cpp")
 
 ament_export_include_directories(
   include
