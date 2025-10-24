@@ -39,7 +39,7 @@ public:
   virtual void processData(size_t /*index*/, uint8_t * /*domain_address*/) {}
   /** a pointer to syncs. return &syncs[0] */
   virtual const ec_sync_info_t * syncs() {return NULL;}
-  virtual bool initialized() {return true;}
+  virtual bool initialized() const {return true;}
   virtual void set_state_is_operational(bool value) {is_operational_ = value;}
   bool is_operational() const { return is_operational_; }
   /** Assign activate DC synchronization. return activate word*/
