@@ -38,6 +38,7 @@ public:
   virtual ~EcCiA402Drive();
   /** Returns true if drive has reached "operation enabled" state.
    *  The transition through the state machine is handled automatically. */
+  // const keeps the signature aligned with EcSlave::initialized() so this override is honored.
   bool initialized() const override;
 
   virtual void processData(size_t index, uint8_t * domain_address);

@@ -39,6 +39,7 @@ public:
   virtual void processData(size_t /*index*/, uint8_t * /*domain_address*/) {}
   /** a pointer to syncs. return &syncs[0] */
   virtual const ec_sync_info_t * syncs() {return NULL;}
+  // Read-only readiness query so derived classes can override without mutating state.
   virtual bool initialized() const {return true;}
   virtual void set_state_is_operational(bool value) {is_operational_ = value;}
   bool is_operational() const { return is_operational_; }
