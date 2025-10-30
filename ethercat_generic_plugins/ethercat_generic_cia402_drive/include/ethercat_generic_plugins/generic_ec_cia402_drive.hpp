@@ -21,6 +21,7 @@
 #include <string>
 #include <unordered_map>
 #include <limits>
+#include <atomic>
 
 #include "yaml-cpp/yaml.h"
 #include "ethercat_interface/ec_slave.hpp"
@@ -51,6 +52,9 @@ public:
   int8_t mode_of_operation_ = -1;
 
 protected:
+  // Global aggregated count of faulted instances (process-wide)
+  static std::atomic<int> num_faulted_;
+
   uint32_t counter_ = 0;
   uint16_t last_status_word_ = -1;
   uint16_t status_word_ = 0;
