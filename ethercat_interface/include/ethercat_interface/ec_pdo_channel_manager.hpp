@@ -65,18 +65,10 @@ public:
       last_value = static_cast<double>(EC_READ_U32(domain_address));
     } else if (data_type == "int32") {
       last_value = static_cast<double>(EC_READ_S32(domain_address));
-    } else if (data_type == "float32") {
-      union { uint32_t u; float f; } conv;
-      conv.u = EC_READ_U32(domain_address);
-      last_value = static_cast<double>(conv.f);
     } else if (data_type == "uint64") {
       last_value = static_cast<double>(EC_READ_U64(domain_address));
     } else if (data_type == "int64") {
       last_value = static_cast<double>(EC_READ_S64(domain_address));
-    } else if (data_type == "float64") {
-      union { uint64_t u; double d; } conv64;
-      conv64.u = EC_READ_U64(domain_address);
-      last_value = conv64.d;
     } else if (data_type == "bool") {
       last_value = (EC_READ_U8(domain_address) & data_mask) ? 1 : 0;
     } else {
@@ -100,18 +92,10 @@ public:
       EC_WRITE_U32(domain_address, static_cast<uint32_t>(value));
     } else if (data_type == "int32") {
       EC_WRITE_S32(domain_address, static_cast<int32_t>(value));
-    } else if (data_type == "float32") {
-      union { uint32_t u; float f; } conv;
-      conv.f = static_cast<float>(value);
-      EC_WRITE_U32(domain_address, conv.u);
     } else if (data_type == "uint64") {
       EC_WRITE_U64(domain_address, static_cast<uint64_t>(value));
     } else if (data_type == "int64") {
       EC_WRITE_S64(domain_address, static_cast<int64_t>(value));
-    } else if (data_type == "float64") {
-      union { uint64_t u; double d; } conv64;
-      conv64.d = static_cast<double>(value);
-      EC_WRITE_U64(domain_address, conv64.u);
     } else {
       buffer_ = EC_READ_U8(domain_address);
       if (popcount(data_mask) == 1) {
@@ -232,9 +216,9 @@ public:
       return 8;
     } else if (type == "int16" || type == "uint16") {
       return 16;
-    } else if (type == "int32" || type == "uint32" || type == "float32") {
+    } else if (type == "int32" || type == "uint32") {
       return 32;
-    } else if (type == "int64" || type == "uint64" || type == "float64") {
+    } else if (type == "int64" || type == "uint64") {
       return 64;
     } else if (type.find("bit") != std::string::npos) {
       std::string n_bits = type.substr(type.find("bit") + 3);
