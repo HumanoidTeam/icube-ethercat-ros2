@@ -129,10 +129,12 @@ void EcCiA402Drive::processData(size_t index, uint8_t *domain_address)
             // Update registry counters
             bool was_faulted = (prev != 0);
             bool now_faulted = (error_code_ != 0);
-            if (!was_faulted && now_faulted) {
-                num_faulted_.fetch_add(1, std::memory_order_relaxed);
-            } else if (was_faulted && !now_faulted) {
-                num_faulted_.fetch_sub(1, std::memory_order_relaxed);
+            if (!exclude_from_global_quick_stop_) {
+                if (!was_faulted && now_faulted) {
+                    num_faulted_.fetch_add(1, std::memory_order_relaxed);
+                } else if (was_faulted && !now_faulted) {
+                    num_faulted_.fetch_sub(1, std::memory_order_relaxed);
+                }
             }
 
             // During startup, clear any stored temperature faults
@@ -233,6 +235,10 @@ bool EcCiA402Drive::setup_from_config(YAML::Node drive_config)
     if (drive_config["auto_state_transitions"])
     {
         auto_state_transitions_ = drive_config["auto_state_transitions"].as<bool>();
+    }
+    if (drive_config["exclude_from_global_quick_stop"])
+    {
+        exclude_from_global_quick_stop_ = drive_config["exclude_from_global_quick_stop"].as<bool>();
     }
     return true;
 }
