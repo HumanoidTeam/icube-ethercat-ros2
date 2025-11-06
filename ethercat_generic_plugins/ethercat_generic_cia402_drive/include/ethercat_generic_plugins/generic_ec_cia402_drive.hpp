@@ -71,6 +71,9 @@ protected:
   bool temperature_fault_detected_ = false;
   uint16_t error_code_ = 0;
 
+  // Quick stop behavior controls
+  bool exclude_from_global_quick_stop_ = false; // Do not propagate this drive's faults globally if true
+
   /** returns device state based upon the status_word */
   DeviceState deviceState(uint16_t status_word);
   /** returns the control word that will take device from state to next desired state */
