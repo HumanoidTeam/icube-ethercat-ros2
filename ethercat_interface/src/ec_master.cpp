@@ -104,6 +104,14 @@ void EcMaster::addSlave(uint16_t alias, uint16_t position, EcSlave * slave)
       interval_ - (t.tv_nsec % (interval_)),
       0,
       0);
+    if (!reference_clock_set_) {
+      int ret = ecrt_master_select_reference_clock(master_, slave_info.config);
+      if (ret) {
+        printWarning("Failed to select reference clock for DC sync.");
+      } else {
+        reference_clock_set_ = true;
+      }
+    }
   }
 
   slave_info_.push_back(slave_info);

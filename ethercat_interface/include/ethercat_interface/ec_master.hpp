@@ -170,6 +170,7 @@ private:
   uint32_t check_state_frequency_ = 10;
 
   uint32_t interval_;
+  bool reference_clock_set_ = false;
 };
 
 }  // namespace ethercat_interface
