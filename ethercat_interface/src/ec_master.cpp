@@ -15,6 +15,7 @@
 #include "ethercat_interface/ec_master.hpp"
 #include "ethercat_interface/ec_slave.hpp"
 
+#include <cstdint>
 #include <unistd.h>
 #include <sys/resource.h>
 #include <pthread.h>
@@ -28,6 +29,18 @@
 
 #define EC_NEWTIMEVAL2NANO(TV) \
   (((TV).tv_sec - 946684800ULL) * 1000000000ULL + (TV).tv_nsec)
+
+namespace {
+uint64_t monotonicTimeSince2000Ns()
+{
+  timespec monotonic{};
+  clock_gettime(CLOCK_MONOTONIC, &monotonic);
+  const uint64_t monotonic_ns =
+    static_cast<uint64_t>(monotonic.tv_sec) * 1000000000ULL + static_cast<uint64_t>(monotonic.tv_nsec);
+  constexpr uint64_t kEpoch2000OffsetNs = 946684800ULL * 1000000000ULL;
+  return monotonic_ns + kEpoch2000OffsetNs;
+}
+}  // namespace
 
 namespace ethercat_interface
 {
@@ -286,10 +299,8 @@ void EcMaster::update(uint32_t domain)
     }
   }
 
-  struct timespec t;
-
-  clock_gettime(CLOCK_REALTIME, &t);
-  ecrt_master_application_time(master_, EC_NEWTIMEVAL2NANO(t));
+  const uint64_t app_time_ns = monotonicTimeSince2000Ns();
+  ecrt_master_application_time(master_, app_time_ns);
   ecrt_master_sync_reference_clock(master_);
   ecrt_master_sync_slave_clocks(master_);
 
@@ -345,10 +356,8 @@ void EcMaster::writeData(uint32_t domain)
     }
   }
 
-  struct timespec t;
-
-  clock_gettime(CLOCK_REALTIME, &t);
-  ecrt_master_application_time(master_, EC_NEWTIMEVAL2NANO(t));
+  const uint64_t app_time_ns = monotonicTimeSince2000Ns();
+  ecrt_master_application_time(master_, app_time_ns);
   ecrt_master_sync_reference_clock(master_);
   ecrt_master_sync_slave_clocks(master_);
 
