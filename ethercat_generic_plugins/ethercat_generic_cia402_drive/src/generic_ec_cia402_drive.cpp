@@ -67,6 +67,20 @@ void EcCiA402Drive::processData(size_t index, uint8_t *domain_address)
                 }
                 pdo_channels_info_[index].default_value = cw;
             }
+            if (auto_state_cmd_index_ >= 0)
+            {
+                if (command_interface_ptr_->at(auto_state_cmd_index_) == 0)
+                {
+                    last_auto_state_cmd_ = false;
+                }
+                if (last_auto_state_cmd_ == false &&
+                    command_interface_ptr_->at(auto_state_cmd_index_) != 0 &&
+                    !std::isnan(command_interface_ptr_->at(auto_state_cmd_index_)))
+                {
+                    last_auto_state_cmd_ = true;
+                    auto_state_transitions_cmd_ = true;
+                }
+            }
         }
     }
 
@@ -218,6 +232,11 @@ bool EcCiA402Drive::setupSlave(std::unordered_map<std::string, std::string> slav
         fault_reset_command_interface_index_ = std::stoi(paramters_["command_interface/reset_fault"]);
     }
 
+    if (paramters_.find("command_interface/auto_state_transitions") != paramters_.end())
+    {
+        auto_state_cmd_index_ = std::stoi(paramters_["command_interface/auto_state_transitions"]);
+    }
+
     return true;
 }
 
@@ -319,7 +338,14 @@ uint16_t EcCiA402Drive::transition(DeviceState state, uint16_t control_word)
     case STATE_READY_TO_SWITCH_ON: // -> STATE_SWITCH_ON
         return (control_word & 0b01110111) | 0b00000111;
     case STATE_SWITCH_ON: // -> STATE_OPERATION_ENABLED
+        if (auto_state_transitions_cmd_)
+        {
         return (control_word & 0b01111111) | 0b00001111;
+        }
+        else
+        {
+            return (control_word & 0b01110111) | 0b00000111;
+        }
     case STATE_OPERATION_ENABLED: // -> GOOD
         return control_word;
     case STATE_QUICK_STOP_ACTIVE: // -> STATE_OPERATION_ENABLED
