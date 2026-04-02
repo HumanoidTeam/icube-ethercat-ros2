@@ -23,6 +23,16 @@
 
 namespace ethercat_driver
 {
+namespace {
+
+uint64_t monotonicNowNs() {
+  struct timespec t;
+  clock_gettime(CLOCK_MONOTONIC, &t);
+  return ethercat_interface::monotonicTimespecToNs(t);
+}
+
+}  // namespace
+
 CallbackReturn EthercatDriver::on_init(
   const hardware_interface::HardwareInfo & info)
 {
@@ -32,6 +42,8 @@ CallbackReturn EthercatDriver::on_init(
 
   const std::lock_guard<std::mutex> lock(ec_mutex_);
   activated_ = false;
+  cycle_app_time_ns_ = 0;
+  cycle_app_time_valid_ = false;
 
   // Parse master_id from hardware parameters
   int master_id = 0;  // Default to 0 if not specified
@@ -338,7 +350,7 @@ CallbackReturn EthercatDriver::on_activate(
     clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &t, NULL);
     // update EtherCAT bus
 
-    master_->update();
+    master_->update(ethercat_interface::monotonicTimespecToNs(t));
     RCLCPP_INFO(rclcpp::get_logger("EthercatDriver"), "updated!");
 
     // check if operational
@@ -370,6 +382,7 @@ CallbackReturn EthercatDriver::on_deactivate(
 {
   const std::lock_guard<std::mutex> lock(ec_mutex_);
   activated_ = false;
+  cycle_app_time_valid_ = false;
 
   RCLCPP_INFO(rclcpp::get_logger("EthercatDriver"), "Stopping ...please wait...");
 
@@ -392,6 +405,8 @@ hardware_interface::return_type EthercatDriver::read(
   // try to lock so we can avoid blocking the read/write loop on the lock.
   const std::unique_lock<std::mutex> lock(ec_mutex_, std::try_to_lock);
   if (lock.owns_lock() && activated_) {
+    cycle_app_time_ns_ = monotonicNowNs();
+    cycle_app_time_valid_ = true;
     master_->readData();
   }
   return hardware_interface::return_type::OK;
@@ -403,8 +418,9 @@ hardware_interface::return_type EthercatDriver::write(
 {
   // try to lock so we can avoid blocking the read/write loop on the lock.
   const std::unique_lock<std::mutex> lock(ec_mutex_, std::try_to_lock);
-  if (lock.owns_lock() && activated_) {
-    master_->writeData();
+  if (lock.owns_lock() && activated_ && cycle_app_time_valid_) {
+    master_->writeData(cycle_app_time_ns_, 0);
+    cycle_app_time_valid_ = false;
   }
   return hardware_interface::return_type::OK;
 }

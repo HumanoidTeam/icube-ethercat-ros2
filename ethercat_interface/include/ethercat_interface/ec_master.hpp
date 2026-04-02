@@ -28,6 +28,11 @@
 namespace ethercat_interface
 {
 
+inline uint64_t monotonicTimespecToNs(const timespec & tv)
+{
+  return static_cast<uint64_t>(tv.tv_sec) * 1000000000ULL + static_cast<uint64_t>(tv.tv_nsec);
+}
+
 class EcMaster
 {
 public:
@@ -50,6 +55,7 @@ public:
 
   /** perform one EtherCAT cycle, passing the domain to the slaves */
   virtual void update(uint32_t domain = 0);
+  virtual void update(uint64_t app_time, uint32_t domain);
 
   /** run a control loop of update() and user_callback(), blocking.
    *  call activate and setThreadHighPriority/RealTime first. */
@@ -89,6 +95,7 @@ public:
 
   void readData(uint32_t domain = 0);
   void writeData(uint32_t domain = 0);
+  void writeData(uint64_t app_time, uint32_t domain);
 
   bool isValid() const { return master_ != NULL; }
 
