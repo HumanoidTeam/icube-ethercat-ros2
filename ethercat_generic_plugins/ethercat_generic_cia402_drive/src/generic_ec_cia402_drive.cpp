@@ -69,16 +69,20 @@ void EcCiA402Drive::processData(size_t index, uint8_t *domain_address)
             }
             if (auto_state_cmd_index_ >= 0)
             {
-                if (command_interface_ptr_->at(auto_state_cmd_index_) == 0)
+                double cmd = command_interface_ptr_->at(auto_state_cmd_index_);
+                if (!std::isnan(cmd))
                 {
-                    last_auto_state_cmd_ = false;
-                }
-                if (last_auto_state_cmd_ == false &&
-                    command_interface_ptr_->at(auto_state_cmd_index_) != 0 &&
-                    !std::isnan(command_interface_ptr_->at(auto_state_cmd_index_)))
-                {
-                    last_auto_state_cmd_ = true;
-                    auto_state_transitions_cmd_ = true;
+                    // Level-triggered. Non-zero -> release brakes (enable op).
+                    // Zero -> engage brakes (disable op).
+                    if (cmd == 0.0)
+                    {
+                        auto_state_transitions_cmd_ = false;
+                    }
+                    else
+                    {
+                        auto_state_transitions_cmd_ = true;
+                    }
+                    last_auto_state_cmd_ = auto_state_transitions_cmd_;
                 }
             }
         }
@@ -346,7 +350,14 @@ uint16_t EcCiA402Drive::transition(DeviceState state, uint16_t control_word)
         {
             return (control_word & 0b01110111) | 0b00000111;
         }
-    case STATE_OPERATION_ENABLED: // -> GOOD
+    case STATE_OPERATION_ENABLED:
+        // Disable Operation (0x07) -> drops to STATE_SWITCH_ON; existing
+        // else branch above then holds us there. Brake engages, motor stays
+        // powered (faster re-enable).
+        if (!auto_state_transitions_cmd_)
+        {
+            return (control_word & 0b01110111) | 0b00000111;
+        }
         return control_word;
     case STATE_QUICK_STOP_ACTIVE: // -> STATE_OPERATION_ENABLED
         return (control_word & 0b01111111) | 0b00001111;
