@@ -83,6 +83,8 @@ private:
     "ethercat_interface", "ethercat_interface::EcSlave"};
 
   int control_frequency_;
+  uint64_t cycle_app_time_ns_{0};
+  bool cycle_app_time_valid_{false};
   std::unique_ptr<ethercat_interface::EcMaster> master_;
   std::mutex ec_mutex_;
   bool activated_;

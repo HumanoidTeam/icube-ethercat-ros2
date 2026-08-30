@@ -100,7 +100,7 @@ void EcMaster::addSlave(uint16_t alias, uint16_t position, EcSlave * slave)
   if (slave->assign_activate_dc_sync()) {
     struct timespec t;
     clock_gettime(CLOCK_MONOTONIC, &t);
-    ecrt_master_application_time(master_, EC_NEWTIMEVAL2NANO(t));
+    ecrt_master_application_time(master_, monotonicTimespecToNs(t));
     ecrt_slave_config_dc(
       slave_info.config,
       slave->assign_activate_dc_sync(),
@@ -238,7 +238,7 @@ bool EcMaster::activate()
   // set application time
   struct timespec t;
   clock_gettime(CLOCK_MONOTONIC, &t);
-  ecrt_master_application_time(master_, EC_NEWTIMEVAL2NANO(t));
+  ecrt_master_application_time(master_, monotonicTimespecToNs(t));
 
   // activate master
   bool activate_status = ecrt_master_activate(master_);
@@ -263,6 +263,13 @@ bool EcMaster::activate()
 }
 
 void EcMaster::update(uint32_t domain)
+{
+  struct timespec t;
+  clock_gettime(CLOCK_MONOTONIC, &t);
+  update(monotonicTimespecToNs(t), domain);
+}
+
+void EcMaster::update(uint64_t app_time, uint32_t domain)
 {
   // receive process data
   ecrt_master_receive(master_);
@@ -290,10 +297,7 @@ void EcMaster::update(uint32_t domain)
     }
   }
 
-  struct timespec t;
-
-  clock_gettime(CLOCK_REALTIME, &t);
-  ecrt_master_application_time(master_, EC_NEWTIMEVAL2NANO(t));
+  ecrt_master_application_time(master_, app_time);
   ecrt_master_sync_reference_clock(master_);
   ecrt_master_sync_slave_clocks(master_);
 
@@ -337,6 +341,13 @@ void EcMaster::readData(uint32_t domain)
 
 void EcMaster::writeData(uint32_t domain)
 {
+  struct timespec t;
+  clock_gettime(CLOCK_MONOTONIC, &t);
+  writeData(monotonicTimespecToNs(t), domain);
+}
+
+void EcMaster::writeData(uint64_t app_time, uint32_t domain)
+{
   DomainInfo * domain_info = domain_info_.at(domain);
   if (domain_info == NULL) {
     throw std::runtime_error("Null domain info: " + std::to_string(domain));
@@ -349,10 +360,7 @@ void EcMaster::writeData(uint32_t domain)
     }
   }
 
-  struct timespec t;
-
-  clock_gettime(CLOCK_REALTIME, &t);
-  ecrt_master_application_time(master_, EC_NEWTIMEVAL2NANO(t));
+  ecrt_master_application_time(master_, app_time);
   ecrt_master_sync_reference_clock(master_);
   ecrt_master_sync_slave_clocks(master_);
 
